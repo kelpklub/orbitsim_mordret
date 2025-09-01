@@ -15,13 +15,13 @@ MIN_DIST = 1
 BASE_GRID_SIZE = 50  # Base grid size in pixels
 
 # Zoom and camera constants
-MIN_ZOOM = 0.0001
+MIN_ZOOM = 0.0000001
 MAX_ZOOM = 5.0
 ZOOM_SPEED = 1.1
 
 #time scale
 MIN_TIME_SCALE=0.01
-MAX_TIME_SCALE=1000
+MAX_TIME_SCALE=100000
 # Colors
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -48,11 +48,16 @@ input_font = pygame.font.Font(None, 24)
 class Camera:
     """Camera system for zoom and pan"""
     def __init__(self):
-        self.zoom = 1.0
+        self.zoom = 0.01
         self.pan_x = 0.0
         self.pan_y = 0.0
         self.dragging = False
+        self.follow=None
         self.last_mouse_pos = (0, 0)
+    def update_follow(self):
+        if self.follow:
+            self.pan_x=-self.follow.x
+            self.pan_y=-self.follow.y
 
     def world_to_screen(self, world_x, world_y):
         """Convert world coordinates to screen coordinates"""
@@ -429,17 +434,17 @@ def draw_cartesian_plane(screen, camera, show_grid=True):
         origin_label = font.render("(0,0)", True, WHITE)
         screen.blit(origin_label, (origin_screen_x + 10, origin_screen_y + 10))
 
-    # Draw grid info
-    grid_info = f"Grid: {format_coordinate_label(grid_spacing_world)}"
-    info_surface = small_font.render(grid_info, True, GRAY)
-    screen.blit(info_surface, (WIDTH - 150, HEIGHT - 30))
 
 def format_coordinate_label(value):
     """Format coordinate label for display"""
     if abs(value) < 0.01:
         return "0"
-    elif abs(value) >= 1000:
-        return f"{int(value/1000)}k"
+    elif abs(value) >= 1000 and abs(value)<1000000:
+        return f"{float(value/1000):.1f}K"
+    elif abs(value) >= 1000000 and abs(value)<1000000000:
+        return f"{float(value/1000000):.1f}M"
+    elif abs(value) >=1000000000:
+        return f"{float(value/1000000000):.1f}B"
     elif abs(value) >= 1:
         return f"{int(value)}"
     else:
@@ -526,7 +531,7 @@ class OrbitSimulation:
     """Main simulation class with dynamic grid"""
     def __init__(self):
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        pygame.display.set_caption("Dynamic Grid Orbital Simulation")
+        pygame.display.set_caption("Orbital Simulation - Prince Class 11 ")
         self.clock = pygame.time.Clock()
 
         self.running = True
@@ -548,6 +553,7 @@ class OrbitSimulation:
         self.bodies = []
         self.create_sun()
         self.create_earth()
+        self.create_moon()
         self.setup_input_boxes()
 
     def create_sun(self):
@@ -557,9 +563,14 @@ class OrbitSimulation:
         self.bodies.append(sun)
     def create_earth(self):
         """Create default planet"""
-        earth = Body(40000, 0, 81, 0, 24, PLANET_RADIUS, GREEN, "Earth")
+        earth = Body(40000, 0, 81, 0, 23.24, PLANET_RADIUS, GREEN, "Earth")
         earth.is_sun = False
         self.bodies.append(earth)
+    def create_moon(self):
+        """Create default planet"""
+        moon = Body(40050, 0, 1, 0, 23.6, PLANET_RADIUS, GRAY, "Moon")
+        moon.is_sun = False
+        self.bodies.append(moon)
 
     def setup_input_boxes(self):
         """Setup input boxes for planet creation and editing"""
@@ -570,9 +581,9 @@ class OrbitSimulation:
         self.creation_input_boxes = [
             InputBox(dialog_x + 20, dialog_y + 140, 120, 30, "X Coordinate:", "0"),
             InputBox(dialog_x + 160, dialog_y + 140, 120, 30, "Y Coordinate:", "0"),
-            InputBox(dialog_x + 300, dialog_y + 140, 120, 30, "Mass:", "300"),
+            InputBox(dialog_x + 300, dialog_y + 140, 120, 30, "Mass:", "81"),
             InputBox(dialog_x + 20, dialog_y + 190, 120, 30, "Velocity X:", "0"),
-            InputBox(dialog_x + 160, dialog_y + 190, 120, 30, "Velocity Y:", "0"),
+            InputBox(dialog_x + 160, dialog_y + 190, 120, 30, "Velocity Y:", "24"),
             InputBox(dialog_x + 300, dialog_y + 190, 120, 30, "Direction (Â°):", "0")
         ]
 
@@ -709,6 +720,7 @@ class OrbitSimulation:
     def handle_events(self):
         """Handle all pygame events"""
         for event in pygame.event.get():
+            mods=pygame.key.get_mods()
             if event.type == pygame.QUIT:
                 self.running = False
 
@@ -728,14 +740,14 @@ class OrbitSimulation:
                     self.camera.zoom_at_point(mouse_x, mouse_y, 1/ZOOM_SPEED)
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
+                if event.button == 2:
                     self.camera.start_drag(event.pos)
 
                 elif event.button == 3:
                     mouse_x, mouse_y = event.pos
                     clicked_body = get_body_at_position(mouse_x, mouse_y, self.bodies, self.camera)
 
-                    if clicked_body:
+                    if clicked_body :
                         self.edit_mode = True
                         self.selected_body = clicked_body
                         clicked_body.selected = True
@@ -755,12 +767,24 @@ class OrbitSimulation:
                         self.creation_input_boxes[1].set_value(int(-world_y))
                         self.creation_input_boxes[0].active = True
                         self.creation_input_boxes[0].color = self.creation_input_boxes[0].color_active
-
+                    
+                    # if clicked_body:#Shift +left click
+                    #     if mods ==4097:
+                            
+                elif event.button ==1:
+                        mouse_x, mouse_y = event.pos
+                        clicked_body = get_body_at_position(mouse_x, mouse_y, self.bodies, self.camera)
+                        self.selected_body=clicked_body
+                        if clicked_body:
+                            self.follow_x=self.selected_body.x         
+                            self.follow_y=self.selected_body.y       
+                            print(self.follow_x,self.follow_y)
+                            
             elif event.type == pygame.MOUSEMOTION:
                 self.camera.update_drag(event.pos)
 
             elif event.type == pygame.MOUSEBUTTONUP:
-                if event.button == 1:
+                if event.button == 2:
                     self.camera.stop_drag()
 
             elif event.type == pygame.KEYDOWN:
@@ -774,16 +798,28 @@ class OrbitSimulation:
                 elif event.key == pygame.K_c:
                     for body in self.bodies:
                         body.trail.clear()
-
+                        
+                
+                                    
+                
                 elif event.key == pygame.K_r:
-                    self.bodies.clear()
-                    self.create_sun()
-                    self.create_earth()
-                    self.camera = Camera()
-                    self.edit_mode = False
-                    self.selected_body = None
-                    self.paused = True
-                    self.time_scale=1.0
+                    if mods==4096:#default mod
+                        self.bodies.clear()
+                        self.create_sun()
+                        self.create_earth()
+                        self.create_moon()
+                        self.camera = Camera()
+                        self.edit_mode = False
+                        self.selected_body = None
+                        self.paused = True
+                        self.time_scale=1.0
+                    elif mods==4097:#shift is pressed
+                        self.bodies.clear()
+                        self.camera = Camera()
+                        self.edit_mode = False
+                        self.selected_body = None
+                        self.paused = True
+                        self.time_scale=1.0 
 
                 elif event.key == pygame.K_g:
                     self.show_grid = not self.show_grid
@@ -794,7 +830,7 @@ class OrbitSimulation:
             dt = 0.5*self.time_scale
             apply_mutual_gravity(self.bodies, dt)
 
-    def draw(self):
+    def draw(self,fps,mods):
         """Draw everything"""
         self.screen.fill(BLACK)
 
@@ -805,7 +841,7 @@ class OrbitSimulation:
             body.draw(self.screen, self.camera)
 
         self.draw_instructions()
-        self.draw_info()
+        self.draw_info(fps,mods)
 
         if self.edit_mode and self.selected_body:
             draw_edit_interface(self.screen, self.selected_body, self.edit_input_boxes)
@@ -827,18 +863,19 @@ class OrbitSimulation:
         """Draw control instructions"""
         instructions = [
             "SPACEBAR: Pause/Resume simulation",
-            "Mouse wheel: Zoom (dynamic grid spacing)",
-            "Left-drag: Pan, Right-click: Create/edit",
-            "G: Grid, C: Clear trails, R: Reset"
+            "Mouse wheel: Zoom ",
+            "Left-drag: Pan"," Right-click: Create/edit",
+            "G: Grid, C: Clear trails, R: Reset to Sol,Luna,Terra",
+            "LShift + R:Remove all planets"
         ]
 
         y_offset = 10
         for instruction in instructions:
             text_surface = small_font.render(instruction, True, WHITE)
-            self.screen.blit(text_surface, (10, y_offset))
+            self.screen.blit(text_surface, (50, y_offset))
             y_offset += 20
 
-    def draw_info(self):
+    def draw_info(self,fps,mods):
         """Draw simulation information"""
         status_color = RED if self.paused else GREEN
         status_text = "PAUSED" if self.paused else "RUNNING"
@@ -850,24 +887,37 @@ class OrbitSimulation:
             f"Status: {status_text}",
             f"Time: {self.time_scale:.2f}x",
             f"Bodies: {len(self.bodies)}",
-            f"Zoom: {self.camera.zoom:.2f}x",
-            f"Grid: {format_coordinate_label(grid_spacing)} units"
+            f"Zoom: {self.camera.zoom:.7f}x",
+            f"Grid: {format_coordinate_label(grid_spacing)} units",
+            f"Fps: {(fps)}",
+            f"Debug Key Mods:{(mods)}"
         ]
 
-        y_offset = HEIGHT - 100
+        y_offset = HEIGHT - 150
         for i, line in enumerate(info_lines):
-            color = status_color if i == 0 else WHITE
+            if i==0:
+                color =status_color
+            elif i==5:
+                color=YELLOW
+                
+            else :
+                color=WHITE
             text_surface = small_font.render(line, True, color)
-            self.screen.blit(text_surface, (WIDTH - 200, y_offset))
-            y_offset += 20
+            self.screen.blit(text_surface, (WIDTH - 150, y_offset))
+            y_offset += 15
 
     def run(self):
         """Main simulation loop"""
         while self.running:
             self.handle_events()
             self.update_physics()
-            self.draw()
+            self.camera.update_follow()
             self.clock.tick(60)
+            fps=int(self.clock.get_fps())
+            mods=pygame.key.get_mods()
+            self.draw(fps,mods)
+            self.clock.tick(60)
+            
 
         pygame.quit()
 
