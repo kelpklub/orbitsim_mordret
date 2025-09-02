@@ -52,12 +52,9 @@ class Camera:
         self.pan_x = 0.0
         self.pan_y = 0.0
         self.dragging = False
-        self.follow=None
+        self.follow = None
         self.last_mouse_pos = (0, 0)
-    def update_follow(self):
-        if self.follow:
-            self.pan_x=-self.follow.x
-            self.pan_y=-self.follow.y
+    
 
     def world_to_screen(self, world_x, world_y):
         """Convert world coordinates to screen coordinates"""
@@ -101,7 +98,16 @@ class Camera:
     def stop_drag(self):
         """Stop dragging the camera"""
         self.dragging = False
+        #for following a planet
+    def update_follow(self):
+        if self.follow:
+            self.pan_x = -self.follow.x
+            self.pan_y = -self.follow.y
+    def stop_follow(self):
+        self.follow = None
+        
 
+                
 class InputBox:
     """Enhanced input box for numeric text entry"""
     def __init__(self, x, y, w, h, label, default_text='', number_only=True):
@@ -194,6 +200,9 @@ class Body:
 
         self.fx = 0.0
         self.fy = 0.0
+        
+    def __str__(self):
+        return self.name
 
     def calculate_force_from(self, other):
         """Calculate gravitational force from another body"""
@@ -568,7 +577,7 @@ class OrbitSimulation:
         self.bodies.append(earth)
     def create_moon(self):
         """Create default planet"""
-        moon = Body(40050, 0, 1, 0, 23.6, PLANET_RADIUS, GRAY, "Moon")
+        moon = Body(40050, 0, 1, 0, 24.37, 4, GRAY, "Moon")
         moon.is_sun = False
         self.bodies.append(moon)
 
@@ -721,6 +730,7 @@ class OrbitSimulation:
         """Handle all pygame events"""
         for event in pygame.event.get():
             mods=pygame.key.get_mods()
+            
             if event.type == pygame.QUIT:
                 self.running = False
 
@@ -741,6 +751,7 @@ class OrbitSimulation:
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 2:
+                    self.camera.stop_follow() 
                     self.camera.start_drag(event.pos)
 
                 elif event.button == 3:
@@ -776,9 +787,11 @@ class OrbitSimulation:
                         clicked_body = get_body_at_position(mouse_x, mouse_y, self.bodies, self.camera)
                         self.selected_body=clicked_body
                         if clicked_body:
-                            self.follow_x=self.selected_body.x         
-                            self.follow_y=self.selected_body.y       
-                            print(self.follow_x,self.follow_y)
+                            self.camera.follow=clicked_body
+                            self.camera.update_follow()
+                            print("tracking")
+                            
+                            
                             
             elif event.type == pygame.MOUSEMOTION:
                 self.camera.update_drag(event.pos)
@@ -829,6 +842,8 @@ class OrbitSimulation:
         if not self.paused and not self.creating_planet and not self.edit_mode:
             dt = 0.5*self.time_scale
             apply_mutual_gravity(self.bodies, dt)
+    
+    
 
     def draw(self,fps,mods):
         """Draw everything"""
@@ -864,9 +879,9 @@ class OrbitSimulation:
         instructions = [
             "SPACEBAR: Pause/Resume simulation",
             "Mouse wheel: Zoom ",
-            "Left-drag: Pan"," Right-click: Create/edit",
+            "Left-drag: Pan","Left-click:Follow Planet"," Right-click: Create/edit",
             "G: Grid, C: Clear trails, R: Reset to Sol,Luna,Terra",
-            "LShift + R:Remove all planets"
+            "LShift + R: Remove all planets","[: Fast Forward , ]: Slow Down"
         ]
 
         y_offset = 10
@@ -885,6 +900,7 @@ class OrbitSimulation:
 
         info_lines = [
             f"Status: {status_text}",
+            f"Planet Following: {self.camera.follow}",
             f"Time: {self.time_scale:.2f}x",
             f"Bodies: {len(self.bodies)}",
             f"Zoom: {self.camera.zoom:.7f}x",
@@ -903,7 +919,7 @@ class OrbitSimulation:
             else :
                 color=WHITE
             text_surface = small_font.render(line, True, color)
-            self.screen.blit(text_surface, (WIDTH - 150, y_offset))
+            self.screen.blit(text_surface, (WIDTH - 200, y_offset))
             y_offset += 15
 
     def run(self):
@@ -911,11 +927,11 @@ class OrbitSimulation:
         while self.running:
             self.handle_events()
             self.update_physics()
-            self.camera.update_follow()
             self.clock.tick(60)
             fps=int(self.clock.get_fps())
             mods=pygame.key.get_mods()
             self.draw(fps,mods)
+            self.camera.update_follow()
             self.clock.tick(60)
             
 
