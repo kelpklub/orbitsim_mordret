@@ -48,7 +48,7 @@ input_font = pygame.font.Font(None, 24)
 class Camera:
     """Camera system for zoom and pan"""
     def __init__(self):
-        self.zoom = 0.01
+        self.zoom = 1.0
         self.pan_x = 0.0
         self.pan_y = 0.0
         self.dragging = False
@@ -477,30 +477,28 @@ def draw_edit_interface(screen, body, input_boxes):
     current_speed = body.get_velocity_magnitude()
     current_angle = body.get_velocity_angle()
 
-    current_info = [
-        f"Current Speed: {current_speed:.2f}",
-        f"Current Angle: {current_angle:.1f}Â°",
-        f"Current Vx: {body.vx:.2f}, Vy: {body.vy:.2f}"
-    ]
+    current_info = (
+        
+        f"Current Vx: {body.vx:.2f} /n Vy: {body.vy:.2f}"
+    )
 
-    y_offset = 50
-    for info in current_info:
-        info_surface = small_font.render(info, True, LIGHT_GRAY)
-        screen.blit(info_surface, (box_x + 10, box_y + y_offset))
-        y_offset += 18
+    
+    info_surface = small_font.render(current_info, True, LIGHT_GRAY)
+    screen.blit(info_surface, (box_x + 10, box_y + 50 ))
+        
 
-    # Instructions
-    instructions = [
-        "Method 1: Enter direct velocity components (Vx, Vy)",
-        "Method 2: Enter speed and direction angle",
-        "Tab to move between fields, Enter to apply"
-    ]
-
-    y_offset += 10
-    for instruction in instructions:
-        inst_surface = small_font.render(instruction, True, LIGHT_GRAY)
-        screen.blit(inst_surface, (box_x + 10, box_y + y_offset))
-        y_offset += 18
+    # # Instructions
+    # instructions = [
+    #     "Method 1: Enter direct velocity components (Vx, Vy)",
+        
+    #     "Tab to move between fields, Enter to apply"
+    # ]
+    # y_offset =0
+    # y_offset += 10
+    # for instruction in instructions:
+    #     inst_surface = small_font.render(instruction, True, LIGHT_GRAY)
+    #     screen.blit(inst_surface, (box_x + 10, box_y + y_offset))
+    #     y_offset += 18
 
     # Draw input boxes
     for box in input_boxes:
@@ -508,9 +506,9 @@ def draw_edit_interface(screen, body, input_boxes):
 
 def draw_planet_creation_dialog(screen, input_boxes):
     """Draw planet creation dialog with all input fields visible"""
-    dialog_width, dialog_height = 450, 350
+    dialog_width, dialog_height = 500, 350
     dialog_x = WIDTH // 2 - dialog_width // 2
-    dialog_y = WIDTH // 2 - dialog_height // 2
+    dialog_y = HEIGHT // 2 - dialog_height // 2
 
     dialog_rect = pygame.Rect(dialog_x, dialog_y, dialog_width, dialog_height)
     pygame.draw.rect(screen, DARK_GRAY, dialog_rect)
@@ -584,28 +582,27 @@ class OrbitSimulation:
     def setup_input_boxes(self):
         """Setup input boxes for planet creation and editing"""
         # Planet creation input boxes
-        dialog_x = WIDTH // 2 - 225
-        dialog_y = HEIGHT // 2 - 100
+        dialog_x = WIDTH // 2 
+        dialog_y = HEIGHT // 2 
 
         self.creation_input_boxes = [
-            InputBox(dialog_x + 20, dialog_y + 140, 120, 30, "X Coordinate:", "0"),
-            InputBox(dialog_x + 160, dialog_y + 140, 120, 30, "Y Coordinate:", "0"),
-            InputBox(dialog_x + 300, dialog_y + 140, 120, 30, "Mass:", "81"),
-            InputBox(dialog_x + 20, dialog_y + 190, 120, 30, "Velocity X:", "0"),
-            InputBox(dialog_x + 160, dialog_y + 190, 120, 30, "Velocity Y:", "24"),
-            InputBox(dialog_x + 300, dialog_y + 190, 120, 30, "Direction (Â°):", "0")
+            InputBox(dialog_x - 200, dialog_y , 120, 30, "X Coordinate:", "0"),
+            InputBox(dialog_x - 50, dialog_y , 120, 30, "Y Coordinate:", "0"),
+            InputBox(dialog_x + 100, dialog_y , 120, 30, "Mass:", "81"),
+            InputBox(dialog_x - 150, dialog_y + 75 , 120, 30, "Velocity X:", "0"),
+            InputBox(dialog_x , dialog_y + 75, 120, 30, "Velocity Y:", "24"),
+            
         ]
 
         # Edit input boxes
-        edit_x = WIDTH // 2 - 225
-        edit_y = HEIGHT // 2 - 80
+        edit_x = WIDTH // 2 
+        edit_y = HEIGHT // 2 
 
         self.edit_input_boxes = [
             InputBox(edit_x + 20, edit_y + 160, 100, 30, "Mass:", "0"),
             InputBox(edit_x + 140, edit_y + 160, 100, 30, "Velocity X:", "0"),
             InputBox(edit_x + 260, edit_y + 160, 100, 30, "Velocity Y:", "0"),
-            InputBox(edit_x + 20, edit_y + 210, 100, 30, "Speed:", "0"),
-            InputBox(edit_x + 140, edit_y + 210, 100, 30, "Direction (Â°):", "0")
+            
         ]
 
     def handle_planet_creation(self, event):
@@ -667,16 +664,10 @@ class OrbitSimulation:
         try:
             x_coord = self.creation_input_boxes[0].get_value()
             y_coord = self.creation_input_boxes[1].get_value()
-            mass = max(50, self.creation_input_boxes[2].get_value())
+            mass =  self.creation_input_boxes[2].get_value()
             vx = self.creation_input_boxes[3].get_value()
             vy = self.creation_input_boxes[4].get_value()
-            direction_deg = self.creation_input_boxes[5].get_value()
 
-            if direction_deg != 0 and vx == 0 and vy == 0:
-                direction_rad = math.radians(direction_deg)
-                speed = 5.0
-                vx = speed * math.cos(direction_rad)
-                vy = speed * math.sin(direction_rad)
 
             world_x = x_coord
             world_y = -y_coord
@@ -703,21 +694,8 @@ class OrbitSimulation:
 
                 vx_input = self.edit_input_boxes[1].get_value()
                 vy_input = self.edit_input_boxes[2].get_value()
-                speed_input = self.edit_input_boxes[3].get_value()
-                direction_input = self.edit_input_boxes[4].get_value()
-
-                if speed_input != 0 or direction_input != 0:
-                    if speed_input == 0:
-                        speed_input = self.selected_body.get_velocity_magnitude()
-                    if direction_input == 0:
-                        direction_input = self.selected_body.get_velocity_angle()
-
-                    direction_rad = math.radians(direction_input)
-                    self.selected_body.vx = speed_input * math.cos(direction_rad)
-                    self.selected_body.vy = speed_input * math.sin(direction_rad)
-                else:
-                    self.selected_body.vx = vx_input
-                    self.selected_body.vy = vy_input
+                self.selected_body.vx = vx_input
+                self.selected_body.vy = vy_input
 
             for box in self.edit_input_boxes:
                 box.active = False
@@ -766,8 +744,6 @@ class OrbitSimulation:
                         self.edit_input_boxes[0].set_value(clicked_body.mass)
                         self.edit_input_boxes[1].set_value(round(clicked_body.vx, 2))
                         self.edit_input_boxes[2].set_value(round(clicked_body.vy, 2))
-                        self.edit_input_boxes[3].set_value(round(clicked_body.get_velocity_magnitude(), 2))
-                        self.edit_input_boxes[4].set_value(round(clicked_body.get_velocity_angle(), 1))
                         self.edit_input_boxes[0].active = True
                         self.edit_input_boxes[0].color = self.edit_input_boxes[0].color_active
                     else:
