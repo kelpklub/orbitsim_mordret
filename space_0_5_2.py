@@ -1,4 +1,3 @@
-
 import pygame
 import math
 import random
@@ -17,7 +16,7 @@ BASE_GRID_SIZE = 50  # Base grid size in pixels
 # Zoom and camera constants
 MIN_ZOOM = 0.0000001
 MAX_ZOOM = 5.0
-ZOOM_SPEED = 1.1
+ZOOM_SPEED = 1.23
 
 #time scale
 MIN_TIME_SCALE=0.01
@@ -48,7 +47,7 @@ input_font = pygame.font.Font(None, 24)
 class Camera:
     """Camera system for zoom and pan"""
     def __init__(self):
-        self.zoom = 1.0
+        self.zoom = 0.01
         self.pan_x = 0.0
         self.pan_y = 0.0
         self.dragging = False
@@ -110,7 +109,7 @@ class Camera:
                 
 class InputBox:
     """Enhanced input box for numeric text entry"""
-    def __init__(self, x, y, w, h, label, default_text='', number_only=True):
+    def __init__(self, x, y, w, h, label, default_text='', number_only=True,):
         self.rect = pygame.Rect(x, y, w, h)
         self.color_inactive = GRAY
         self.color_active = WHITE
@@ -120,7 +119,7 @@ class InputBox:
         self.txt_surface = input_font.render(self.text, True, WHITE)
         self.active = False
         self.number_only = number_only
-
+        
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.rect.collidepoint(event.pos):
@@ -461,7 +460,7 @@ def format_coordinate_label(value):
 
 def draw_edit_interface(screen, body, input_boxes):
     """Draw the enhanced velocity editing interface for selected body"""
-    box_width, box_height = 450, 320
+    box_width, box_height = 450, 200
     box_x = WIDTH // 2 - box_width // 2
     box_y = HEIGHT // 2 - box_height // 2
 
@@ -473,32 +472,28 @@ def draw_edit_interface(screen, body, input_boxes):
     title_surface = large_font.render(f"Editing {title}", True, WHITE)
     screen.blit(title_surface, (box_x + 10, box_y + 10))
 
-    # Current velocity display
-    current_speed = body.get_velocity_magnitude()
-    current_angle = body.get_velocity_angle()
-
     current_info = (
         
-        f"Current Vx: {body.vx:.2f} /n Vy: {body.vy:.2f}"
+        f"Current Vx: {body.vx:.2f}  Vy: {body.vy:.2f}"
     )
 
     
-    info_surface = small_font.render(current_info, True, LIGHT_GRAY)
+    info_surface = small_font.render(current_info, True, GREEN)
     screen.blit(info_surface, (box_x + 10, box_y + 50 ))
         
 
-    # # Instructions
-    # instructions = [
-    #     "Method 1: Enter direct velocity components (Vx, Vy)",
+    # Instructions
+    instructions = [
+        "Edit  velocity components (Vx, Vy)","Edit Mass (M) ",
         
-    #     "Tab to move between fields, Enter to apply"
-    # ]
-    # y_offset =0
-    # y_offset += 10
-    # for instruction in instructions:
-    #     inst_surface = small_font.render(instruction, True, LIGHT_GRAY)
-    #     screen.blit(inst_surface, (box_x + 10, box_y + y_offset))
-    #     y_offset += 18
+        "left click to move between fields, Enter to apply"
+    ]
+    y_offset =60
+    y_offset += 10
+    for instruction in instructions:
+        inst_surface = small_font.render(instruction, True, LIGHT_GRAY)
+        screen.blit(inst_surface, (box_x + 10, box_y + y_offset))
+        y_offset += 18
 
     # Draw input boxes
     for box in input_boxes:
@@ -520,8 +515,8 @@ def draw_planet_creation_dialog(screen, input_boxes):
     # Instructions
     instructions = [
         "Fill in the values below:",
-        "Press Tab to move between fields",
-        "Press Enter when finished"
+        "Press left Click to move between fields",
+        "Press Enter only when all values have been inputed"
     ]
 
     y_offset = 60
@@ -599,9 +594,9 @@ class OrbitSimulation:
         edit_y = HEIGHT // 2 
 
         self.edit_input_boxes = [
-            InputBox(edit_x + 20, edit_y + 160, 100, 30, "Mass:", "0"),
-            InputBox(edit_x + 140, edit_y + 160, 100, 30, "Velocity X:", "0"),
-            InputBox(edit_x + 260, edit_y + 160, 100, 30, "Velocity Y:", "0"),
+            InputBox(edit_x -200, edit_y + 50 , 100, 30, "Mass:", "0"),
+            InputBox(edit_x -50 , edit_y + 50, 100, 30, "Velocity X:", "0"),
+            InputBox(edit_x +100  , edit_y + 50, 100, 30, "Velocity Y:", "0"),
             
         ]
 
@@ -643,13 +638,7 @@ class OrbitSimulation:
                 self.selected_body.selected = False
                 self.selected_body = None
                 return
-            elif result == 'tab':
-                box.active = False
-                box.color = box.color_inactive
-                next_box = self.edit_input_boxes[(i + 1) % len(self.edit_input_boxes)]
-                next_box.active = True
-                next_box.color = next_box.color_active
-
+            
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 self.edit_mode = False
@@ -873,19 +862,47 @@ class OrbitSimulation:
 
         # Calculate current grid spacing for info display
         grid_spacing = get_optimal_grid_spacing(self.camera.zoom)
-
+        #gets vy and  vx for body currrently following
+        if self.camera.follow:
+            follow_vy=self.camera.follow.vy
+            follow_vx=self.camera.follow.vx
+        else :
+            follow_vx=0
+            follow_vy=0
+        zoom=self.camera.zoom
+        if zoom >= 1:
+            zoom=f"{self.camera.zoom:.0f}"
+        elif zoom < 1 and zoom > 0.1:
+            zoom=f"{self.camera.zoom:.1f}"
+        elif zoom < 0.1 and zoom > 0.01:
+            zoom=f"{self.camera.zoom:.2f}"
+        elif zoom < 0.01 and zoom > 0.001:
+            zoom=f"{self.camera.zoom:.3f}"
+        elif zoom < 0.001 and zoom > 0.0001:
+            zoom=f"{self.camera.zoom:.4f}"
+        elif zoom < 0.0001 and zoom > 0.00001:
+            zoom=f"{self.camera.zoom:.5f}"
+        elif zoom < 0.00001 and zoom > 0.000001:
+            zoom=f"{self.camera.zoom:.6f}"
+        elif zoom < 0.000001 :
+            zoom =f"{self.camera.zoom:.7f}"
+           
+            
         info_lines = [
             f"Status: {status_text}",
             f"Planet Following: {self.camera.follow}",
+            f"      Vx = {follow_vx:.2f} , Vy = {follow_vy:.2f}",
             f"Time: {self.time_scale:.2f}x",
             f"Bodies: {len(self.bodies)}",
-            f"Zoom: {self.camera.zoom:.7f}x",
+            f"Zoom: {zoom}x",
             f"Grid: {format_coordinate_label(grid_spacing)} units",
             f"Fps: {(fps)}",
             f"Debug Key Mods:{(mods)}"
         ]
 
-        y_offset = HEIGHT - 150
+        y_offset = HEIGHT - 200
+        
+        
         for i, line in enumerate(info_lines):
             if i==0:
                 color =status_color
