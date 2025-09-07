@@ -16,7 +16,7 @@ BASE_GRID_SIZE = 50  # Base grid size in pixels
 # Zoom and camera constants
 MIN_ZOOM = 0.0000001
 MAX_ZOOM = 5.0
-ZOOM_SPEED = 1.23
+ZOOM_SPEED = 1.16
 
 #time scale
 MIN_TIME_SCALE=0.01
@@ -109,7 +109,7 @@ class Camera:
                 
 class InputBox:
     """Enhanced input box for numeric text entry"""
-    def __init__(self, x, y, w, h, label, default_text='', number_only=True,):
+    def __init__(self, x, y, w, h, label, default_text='', number_only=True):
         self.rect = pygame.Rect(x, y, w, h)
         self.color_inactive = GRAY
         self.color_active = WHITE
