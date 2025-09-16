@@ -16,11 +16,11 @@ BASE_GRID_SIZE = 50  # Base grid size in pixels
 # Zoom and camera constants
 MIN_ZOOM = 0.0000001
 MAX_ZOOM = 5.0
-ZOOM_SPEED = 1.16
+ZOOM_SPEED = 1.15
 
 #time scale
 MIN_TIME_SCALE=0.01
-MAX_TIME_SCALE=100000
+MAX_TIME_SCALE=10000
 # Colors
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -28,6 +28,7 @@ YELLOW = (255, 255, 0)
 BLUE = (100, 150, 255)
 RED = (255, 100, 100)
 GREEN = (100, 255, 100)
+LIGHT_GREEN = (144,200,144)
 ORANGE = (255, 165, 0)
 PURPLE = (160, 32, 240)
 CYAN = (0, 255, 255)
@@ -44,8 +45,7 @@ small_font = pygame.font.Font(None, 18)
 large_font = pygame.font.Font(None, 32)
 input_font = pygame.font.Font(None, 24)
 
-class Camera:
-    """Camera system for zoom and pan"""
+class Camera:# What is this class for i wonder?... ps:its a camer make it move and zooooooom
     def __init__(self):
         self.zoom = 0.01
         self.pan_x = 0.0
@@ -54,21 +54,24 @@ class Camera:
         self.follow = None
         self.last_mouse_pos = (0, 0)
     
-
+#there are two coords system 
+# one is the ingame one where planets are placed ,the cartesian plane eg.(25M units,3K units)
+#second one is the screen coodrs like coords on the window eg.(250px,300px)
     def world_to_screen(self, world_x, world_y):
-        """Convert world coordinates to screen coordinates"""
+        #converts ingame coords to ingame coords
         screen_x = (world_x + self.pan_x) * self.zoom + WIDTH // 2
         screen_y = (world_y + self.pan_y) * self.zoom + HEIGHT // 2
         return int(screen_x), int(screen_y)
 
     def screen_to_world(self, screen_x, screen_y):
-        """Convert screen coordinates to world coordinates"""
+        #Convert screen coords to ingame coords
         world_x = (screen_x - WIDTH // 2) / self.zoom - self.pan_x
         world_y = (screen_y - HEIGHT // 2) / self.zoom - self.pan_y
         return world_x, world_y
 
     def zoom_at_point(self, mouse_x, mouse_y, zoom_factor):
-        """Zoom toward a specific point"""
+        #zoom at mouse pointer 
+        #zoom in by increasing zoom factor and zoom out by doing
         if not self.follow:
             world_x, world_y = self.screen_to_world(mouse_x, mouse_y)
 
@@ -86,12 +89,12 @@ class Camera:
             self.pan_y = -(self.follow.y)
 
     def start_drag(self, mouse_pos):
-        """Start dragging the camera"""
+        #start mouse dragging
         self.dragging = True
         self.last_mouse_pos = mouse_pos
 
     def update_drag(self, mouse_pos):
-        """Update camera position during drag"""
+        #update camera pos w/r to mouse drag
         if self.dragging:
             dx = mouse_pos[0] - self.last_mouse_pos[0]
             dy = mouse_pos[1] - self.last_mouse_pos[1]
@@ -102,9 +105,9 @@ class Camera:
             self.last_mouse_pos = mouse_pos
 
     def stop_drag(self):
-        """Stop dragging the camera"""
+        #start mouse drag
         self.dragging = False
-        #for following a planet
+    #for following a planet
     def update_follow(self):
         if self.follow:
             
@@ -115,12 +118,11 @@ class Camera:
         
 
                 
-class InputBox:
-    """Enhanced input box for numeric text entry"""
+class InputBox:#make input box go brrrrrr
     def __init__(self, x, y, w, h, label, default_text='', number_only=True):
         self.rect = pygame.Rect(x, y, w, h)
-        self.color_inactive = GRAY
-        self.color_active = WHITE
+        self.color_inactive = LIGHT_GRAY
+        self.color_active = GREEN
         self.color = self.color_inactive
         self.text = str(default_text)
         self.label = label
@@ -130,20 +132,17 @@ class InputBox:
         
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.rect.collidepoint(event.pos):
-                self.active = True
-                self.color = self.color_active
-            else:
-                self.active = False
-                self.color = self.color_inactive
+            if event.button == 1:#button 1 is left click
+                if self.rect.collidepoint(event.pos):
+                    self.active = True
+                    self.color = self.color_active
+                else:
+                    self.active = False
+                    self.color = self.color_inactive
 
         if event.type == pygame.KEYDOWN:
             if self.active:
-                if event.key == pygame.K_RETURN:
-                    return 'enter'
-                elif event.key == pygame.K_TAB:
-                    return 'tab'
-                elif event.key == pygame.K_BACKSPACE:
+                if event.key == pygame.K_BACKSPACE:
                     self.text = self.text[:-1]
                 else:
                     char = event.unicode
@@ -190,7 +189,6 @@ class InputBox:
         self.txt_surface = input_font.render(self.text, True, WHITE)
 
 class Body:
-    """Celestial body with scaled physics properties"""
     def __init__(self, x, y, mass, vx=0, vy=0, radius=PLANET_RADIUS, color=BLUE, name="Body"):
         self.x = float(x)
         self.y = float(y)
@@ -212,14 +210,14 @@ class Body:
         return self.name
 
     def calculate_force_from(self, other):
-        """Calculate gravitational force from another body"""
+    #calc force w/r to every other body
         dx = other.x - self.x
         dy = other.y - self.y
 
-        distance_squared = dx * dx + dy * dy
-        distance = max(MIN_DIST, math.sqrt(distance_squared))
+        distance_squared = dx * dx + dy * dy #distance formula
+        distance = max(MIN_DIST, math.sqrt(distance_squared))#forces distance to have a minimum cap
 
-        force_magnitude = G * self.mass * other.mass / (distance * distance)
+        force_magnitude = G * self.mass * other.mass / (distance * distance)#formula for gravitational force f=(Gxm1xm2)/rxr
 
         fx = force_magnitude * dx / distance
         fy = force_magnitude * dy / distance
@@ -227,21 +225,22 @@ class Body:
         return fx, fy
 
     def apply_force(self, fx, fy, dt):
-        """Apply force to update velocity and position"""
+#apply force: updatw velocity and position
         if not self.selected:
+            #f=ma -----> a=f/m
             ax = fx / self.mass
             ay = fy / self.mass
-
+            #a=v/t ------> v=axt
             self.vx += ax * dt
             self.vy += ay * dt
-
+            #v=d/t ------> d=vxt
             self.x += self.vx * dt
             self.y += self.vy * dt
 
             self.update_trail()
 
     def update_trail(self):
-        """Update orbit trail"""
+#update planet trails
         current_pos = (self.x, self.y)
         if not self.trail or abs(self.trail[-1][0] - self.x) > 2 or abs(self.trail[-1][1] - self.y) > 2:
             self.trail.append(current_pos)
@@ -249,16 +248,7 @@ class Body:
         if len(self.trail) > 200:
             self.trail.pop(0)
 
-    def get_velocity_magnitude(self):
-        """Get current velocity magnitude"""
-        return math.sqrt(self.vx**2 + self.vy**2)
-
-    def get_velocity_angle(self):
-        """Get current velocity angle in degrees"""
-        return math.degrees(math.atan2(self.vy, self.vx))
-
     def draw(self, screen, camera):
-        """Draw the body and its trail with camera transformation"""
         # Draw trail
         if len(self.trail) > 2:
             trail_color = tuple(c // 2 for c in self.color)
@@ -283,7 +273,7 @@ class Body:
 
             draw_radius = max(3, int(self.radius * camera.zoom))
 
-            if self.is_sun:
+            if self.is_sun:#gives glow to a body ,dpesnt work idk
                 for i in range(3):
                     glow_radius = draw_radius + i * 4
                     glow_alpha = 100 - i * 30
@@ -301,16 +291,26 @@ class Body:
                                  (screen_x, screen_y), draw_radius + 5, 3)
 
             # Draw name and coordinates
-            if camera.zoom > 0.5:
+            if camera.zoom > 0.1:
                 name_surface = small_font.render(self.name, True, WHITE)
                 screen.blit(name_surface, (screen_x + draw_radius + 5, screen_y - 10))
 
                 coord_text = f"({int(self.x)}, {int(-self.y)})"
                 coord_surface = small_font.render(coord_text, True, LIGHT_GRAY)
                 screen.blit(coord_surface, (screen_x + draw_radius + 5, screen_y + 5))
+            # Draw name and coordinates ofbody currently following no matter the zoom level
+            if camera.follow:
+                if camera.follow.name == self.name:
+                    name_surface = small_font.render(self.name, True, WHITE)
+                    screen.blit(name_surface, (screen_x + draw_radius + 5, screen_y - 10))
+
+                    coord_text = f"({int(self.x)}, {int(-self.y)})"
+                    coord_surface = small_font.render(coord_text, True, LIGHT_GRAY)
+                    screen.blit(coord_surface, (screen_x + draw_radius + 5, screen_y + 5))
+                
 
 def get_optimal_grid_spacing(zoom):
-    """Calculate optimal grid spacing based on zoom level"""
+    ##camculate optimal spacing based on zoom level like on those desmos graphing screes
     # Target: grid lines should be 30-100 pixels apart on screen
     target_screen_spacing = 50
 
@@ -333,7 +333,7 @@ def get_optimal_grid_spacing(zoom):
     return nice_spacing
 
 def apply_mutual_gravity(bodies, dt):
-    """Apply mutual gravitational forces between all bodies"""
+#applies force of gravity froma and to all bodies
     for body in bodies:
         body.fx = 0.0
         body.fy = 0.0
@@ -349,17 +349,17 @@ def apply_mutual_gravity(bodies, dt):
         body.apply_force(body.fx, body.fy, dt)
 
 def get_body_at_position(screen_x, screen_y, bodies, camera):
-    """Find body at given screen position"""
+#locate body in ingame coords
     world_x, world_y = camera.screen_to_world(screen_x, screen_y)
 
     for body in bodies:
-        distance = math.sqrt((body.x - world_x)**2 + (body.y - world_y)**2)
+        distance = math.sqrt(math.pow((body.x - world_x),2) + math.pow((body.y - world_y),2))
         if distance <= body.radius:
             return body
     return None
 
 def draw_cartesian_plane(screen, camera, show_grid=True):
-    """Draw cartesian coordinate system with dynamic spacing"""
+    #draw tge grids with nice lookin spaces
     if not show_grid:
         return
 
@@ -445,14 +445,8 @@ def draw_cartesian_plane(screen, camera, show_grid=True):
     if 0 <= origin_screen_y <= HEIGHT:
         pygame.draw.line(screen, AXIS_COLOR, (0, origin_screen_y), (WIDTH, origin_screen_y), 2)
 
-    # Draw origin label
-    if 0 <= origin_screen_x <= WIDTH and 0 <= origin_screen_y <= HEIGHT:
-        origin_label = font.render("(0,0)", True, WHITE)
-        screen.blit(origin_label, (origin_screen_x + 10, origin_screen_y + 10))
-
-
 def format_coordinate_label(value):
-    """Format coordinate label for display"""
+    #shows 2.5M instead of 2500000 to avoid number scaling getting cramped
     if abs(value) < 0.01:
         return "0"
     elif abs(value) >= 1000 and abs(value)<1000000:
@@ -466,8 +460,8 @@ def format_coordinate_label(value):
     else:
         return f"{value:.1f}"
 
-def draw_edit_interface(screen, body, input_boxes):
-    """Draw the enhanced velocity editing interface for selected body"""
+def draw_edit_dialog(screen, body, input_boxes):
+    #draw up edit dialog box
     box_width, box_height = 450, 200
     box_x = WIDTH // 2 - box_width // 2
     box_y = HEIGHT // 2 - box_height // 2
@@ -476,8 +470,8 @@ def draw_edit_interface(screen, body, input_boxes):
     pygame.draw.rect(screen, DARK_GRAY, box_rect)
     pygame.draw.rect(screen, WHITE, box_rect, 2)
 
-    title = "SUN" if body.is_sun else "PLANET"
-    title_surface = large_font.render(f"Editing {title}", True, WHITE)
+    title = body.name
+    title_surface = large_font.render(f"Editing- {title}", True, WHITE)
     screen.blit(title_surface, (box_x + 10, box_y + 10))
 
     current_info = (
@@ -489,8 +483,6 @@ def draw_edit_interface(screen, body, input_boxes):
     info_surface = small_font.render(current_info, True, GREEN)
     screen.blit(info_surface, (box_x + 10, box_y + 50 ))
         
-
-    # Instructions
     instructions = [
         "Edit  velocity components (Vx, Vy)","Edit Mass (M) ",
         
@@ -508,7 +500,7 @@ def draw_edit_interface(screen, body, input_boxes):
         box.draw(screen)
 
 def draw_planet_creation_dialog(screen, input_boxes):
-    """Draw planet creation dialog with all input fields visible"""
+    #draw up a planet creation dialog box
     dialog_width, dialog_height = 500, 350
     dialog_x = WIDTH // 2 - dialog_width // 2
     dialog_y = HEIGHT // 2 - dialog_height // 2
@@ -538,7 +530,7 @@ def draw_planet_creation_dialog(screen, input_boxes):
         box.draw(screen)
 
 class OrbitSimulation:
-    """Main simulation class with dynamic grid"""
+    #main class
     def __init__(self):
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Orbital Simulation - Prince Class 11 ")
@@ -567,23 +559,20 @@ class OrbitSimulation:
         self.setup_input_boxes()
 
     def create_sun(self):
-        """Create the central sun at origin"""
         sun = Body(0, 0, 27000000, 0, 0, SUN_RADIUS, YELLOW, "Sun")
         sun.is_sun = True
         self.bodies.append(sun)
     def create_earth(self):
-        """Create default planet"""
         earth = Body(40000, 0, 81, 0, 23.24, PLANET_RADIUS, GREEN, "Earth")
         earth.is_sun = False
         self.bodies.append(earth)
     def create_moon(self):
-        """Create default planet"""
         moon = Body(40050, 0, 1, 0, 24.37, 4, GRAY, "Moon")
         moon.is_sun = False
         self.bodies.append(moon)
 
     def setup_input_boxes(self):
-        """Setup input boxes for planet creation and editing"""
+        
         # Planet creation input boxes
         dialog_x = WIDTH // 2 
         dialog_y = HEIGHT // 2 
@@ -609,24 +598,18 @@ class OrbitSimulation:
         ]
 
     def handle_planet_creation(self, event):
-        """Handle planet creation input"""
+        #handle creating planets
         if not self.creating_planet:
             return
 
         for i, box in enumerate(self.creation_input_boxes):
-            result = box.handle_event(event)
-            if result == 'enter':
-                self.create_planet_from_input()
-                self.creating_planet = False
-                return
-            elif result == 'tab':
-                box.active = False
-                box.color = box.color_inactive
-                next_box = self.creation_input_boxes[(i + 1) % len(self.creation_input_boxes)]
-                next_box.active = True
-                next_box.color = next_box.color_active
-
+            result = box.handle_event(event)#handles all events with input boxes
+            
         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                self.create_planet_from_input()
+                self.creating_planet =False
+                return
             if event.key == pygame.K_ESCAPE:
                 self.creating_planet = False
                 for box in self.creation_input_boxes:
@@ -634,20 +617,20 @@ class OrbitSimulation:
                     box.color = box.color_inactive
 
     def handle_planet_editing(self, event):
-        """Handle planet editing input"""
+        #Handle planet editing input
         if not self.edit_mode or not self.selected_body:
             return
 
         for i, box in enumerate(self.edit_input_boxes):
             result = box.handle_event(event)
-            if result == 'enter':
+            
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:#return is enter
                 self.apply_edit_values()
                 self.edit_mode = False
                 self.selected_body.selected = False
                 self.selected_body = None
-                return
-            
-        if event.type == pygame.KEYDOWN:
+                return    
             if event.key == pygame.K_ESCAPE:
                 self.edit_mode = False
                 self.selected_body.selected = False
@@ -657,7 +640,7 @@ class OrbitSimulation:
                     box.color = box.color_inactive
 
     def create_planet_from_input(self):
-        """Create planet from input box values"""
+        #take planet info from planet creation dialog and create a planet
         try:
             x_coord = self.creation_input_boxes[0].get_value()
             y_coord = self.creation_input_boxes[1].get_value()
@@ -684,7 +667,7 @@ class OrbitSimulation:
             print(f"Error creating planet: {e}")
 
     def apply_edit_values(self):
-        """Apply edited values to selected body"""
+        # take values from edit dialog and overwrite body info
         try:
             if self.selected_body:
                 self.selected_body.mass = max(50, self.edit_input_boxes[0].get_value())
@@ -702,7 +685,7 @@ class OrbitSimulation:
             print(f"Error applying edit values: {e}")
 
     def handle_events(self):
-        """Handle all pygame events"""
+        # let there be light.........handle all events
         for event in pygame.event.get():
             mods=pygame.key.get_mods()
             
@@ -809,7 +792,7 @@ class OrbitSimulation:
                     self.show_grid = not self.show_grid
 
     def update_physics(self):
-        """Update simulation physics (only if not paused)"""
+        #update physics simulation
         if not self.paused and not self.creating_planet and not self.edit_mode:
             dt = 0.5*self.time_scale
             apply_mutual_gravity(self.bodies, dt)
@@ -817,7 +800,7 @@ class OrbitSimulation:
     
 
     def draw(self,fps,mods):
-        """Draw everything"""
+        #display everything
         self.screen.fill(BLACK)
 
         # Draw dynamic cartesian plane
@@ -830,7 +813,7 @@ class OrbitSimulation:
         self.draw_info(fps,mods)
 
         if self.edit_mode and self.selected_body:
-            draw_edit_interface(self.screen, self.selected_body, self.edit_input_boxes)
+            draw_edit_dialog(self.screen, self.selected_body, self.edit_input_boxes)
 
         if self.creating_planet:
             draw_planet_creation_dialog(self.screen, self.creation_input_boxes)
@@ -846,7 +829,7 @@ class OrbitSimulation:
         pygame.display.flip()
 
     def draw_instructions(self):
-        """Draw control instructions"""
+        #display onstructions
         instructions = [
             "SPACEBAR: Pause/Resume simulation",
             "Mouse wheel: Zoom ",
@@ -862,7 +845,7 @@ class OrbitSimulation:
             y_offset += 20
 
     def draw_info(self,fps,mods):
-        """Draw simulation information"""
+        #display all info
         status_color = RED if self.paused else GREEN
         status_text = "PAUSED" if self.paused else "RUNNING"
 
@@ -922,7 +905,7 @@ class OrbitSimulation:
             y_offset += 15
 
     def run(self):
-        """Main simulation loop"""
+        #main loop to do everything
         while self.running:
             self.handle_events()
             self.update_physics()
@@ -933,10 +916,9 @@ class OrbitSimulation:
             self.camera.update_follow()
             self.clock.tick(60)
             
-
         pygame.quit()
 
 # Run the simulation
 if __name__ == "__main__":
-    simulation = OrbitSimulation()
-    simulation.run()
+    OrbitSimulation().run()
+    
