@@ -69,14 +69,21 @@ class Camera:
 
     def zoom_at_point(self, mouse_x, mouse_y, zoom_factor):
         """Zoom toward a specific point"""
-        world_x, world_y = self.screen_to_world(mouse_x, mouse_y)
+        if not self.follow:
+            world_x, world_y = self.screen_to_world(mouse_x, mouse_y)
 
-        new_zoom = self.zoom * zoom_factor
-        self.zoom = max(MIN_ZOOM, min(MAX_ZOOM, new_zoom))
+            new_zoom = self.zoom * zoom_factor
+            self.zoom = max(MIN_ZOOM, min(MAX_ZOOM, new_zoom))
 
-        new_screen_x, new_screen_y = self.world_to_screen(world_x, world_y)
-        self.pan_x += (mouse_x - new_screen_x) / self.zoom
-        self.pan_y += (mouse_y - new_screen_y) / self.zoom
+            new_screen_x, new_screen_y = self.world_to_screen(world_x, world_y)
+            self.pan_x += (mouse_x - new_screen_x) / self.zoom
+            self.pan_y += (mouse_y - new_screen_y) / self.zoom
+        if self.follow:
+            new_zoom = self.zoom * zoom_factor
+            self.zoom = max(MIN_ZOOM, min(MAX_ZOOM, new_zoom))
+
+            self.pan_x = -(self.follow.x) 
+            self.pan_y = -(self.follow.y)
 
     def start_drag(self, mouse_pos):
         """Start dragging the camera"""
@@ -100,8 +107,9 @@ class Camera:
         #for following a planet
     def update_follow(self):
         if self.follow:
-            self.pan_x = -self.follow.x
-            self.pan_y = -self.follow.y
+            
+            self.pan_x = -self.follow.x 
+            self.pan_y = -self.follow.y 
     def stop_follow(self):
         self.follow = None
         
@@ -744,8 +752,7 @@ class OrbitSimulation:
                         self.creation_input_boxes[0].active = True
                         self.creation_input_boxes[0].color = self.creation_input_boxes[0].color_active
                     
-                    # if clicked_body:#Shift +left click
-                    #     if mods ==4097:
+                    
                             
                 elif event.button ==1:
                         mouse_x, mouse_y = event.pos
@@ -753,8 +760,7 @@ class OrbitSimulation:
                         self.selected_body=clicked_body
                         if clicked_body:
                             self.camera.follow=clicked_body
-                            self.camera.update_follow()
-                            print("tracking")
+                            #self.camera.update_follow()
                             
                             
                             
@@ -932,19 +938,5 @@ class OrbitSimulation:
 
 # Run the simulation
 if __name__ == "__main__":
-    print("Starting Dynamic Grid Orbital Simulation...")
-    print("New Features:")
-    print("âœ“ Dynamic grid spacing adjusts based on zoom level")
-    print("âœ“ Coordinate markings always visible and readable")
-    print("âœ“ Intelligent spacing intervals (1, 2, 5, 10, 20, 50, etc.)")
-    print("âœ“ Grid density automatically optimized")
-    print()
-    print("Grid Behavior:")
-    print("- Zoomed in: Fine grid with detailed coordinates")
-    print("- Zoomed out: Coarse grid with major coordinate markers") 
-    print("- Grid spacing shown in info panel")
-    print("- Coordinate labels formatted for readability")
-    print()
-
     simulation = OrbitSimulation()
     simulation.run()
