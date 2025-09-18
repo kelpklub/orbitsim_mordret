@@ -214,7 +214,7 @@ class Body:
         distance_squared = dx * dx + dy * dy #distance formula
         distance = max(MIN_DIST, math.sqrt(distance_squared))#forces distance to have a minimum cap
 
-        force_magnitude = G * self.mass * other.mass / (distance * distance)#formula for gravitational force f=(Gxm1xm2)/rxr
+        force_magnitude = G * self.mass * other.mass / (distance**2)#formula for gravitational force f=(Gxm1xm2)/rxr
 
         fx = force_magnitude * dx / distance
         fy = force_magnitude * dy / distance
@@ -540,6 +540,8 @@ class OrbitSimulation:
         self.show_grid = True
         #time control
         self.time_scale=1.0
+        #for maximum velocity
+        self.maxv=0
 
         # Camera system
         self.camera = Camera()
@@ -643,7 +645,7 @@ class OrbitSimulation:
             y_coord = self.creation_input_boxes[1].get_value()
             mass =  self.creation_input_boxes[2].get_value()
             vx = self.creation_input_boxes[3].get_value()
-            vy = self.creation_input_boxes[4].get_value()
+            vy = -self.creation_input_boxes[4].get_value()
 
 
             world_x = x_coord
@@ -670,7 +672,7 @@ class OrbitSimulation:
                 self.selected_body.mass = max(50, self.edit_input_boxes[0].get_value())
 
                 vx_input = self.edit_input_boxes[1].get_value()
-                vy_input = self.edit_input_boxes[2].get_value()
+                vy_input = -self.edit_input_boxes[2].get_value()
                 self.selected_body.vx = vx_input
                 self.selected_body.vy = vy_input
 
@@ -848,13 +850,20 @@ class OrbitSimulation:
 
         # Calculate current grid spacing for info display
         grid_spacing = get_optimal_grid_spacing(self.camera.zoom)
-        #gets vy and  vx for body currrently following
         if self.camera.follow:
+            #gets vy and  vx for body currrently following
             follow_vy=self.camera.follow.vy
             follow_vx=self.camera.follow.vx
-        else :
+            velocity = math.sqrt(follow_vx**2+follow_vy**2)
+            self.maxv = max(self.maxv,velocity)
+        else:
             follow_vx=0
             follow_vy=0
+            velocity =0
+            self.maxv=0
+            
+        
+            
         zoom=self.camera.zoom
         if zoom >= 1:
             zoom=f"{self.camera.zoom:.0f}"
@@ -878,6 +887,7 @@ class OrbitSimulation:
             f"Status: {status_text}",
             f"Planet Following: {self.camera.follow}",
             f"      Vx = {follow_vx:.2f} , Vy = {follow_vy:.2f}",
+            f"      V  = {velocity:.1f}  ,Max V = {self.maxv:.1f}",
             f"Time: {self.time_scale:.2f}x",
             f"Bodies: {len(self.bodies)}",
             f"Zoom: {zoom}x",
